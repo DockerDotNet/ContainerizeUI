@@ -13,10 +13,9 @@ import {
     ProCard,
     ProConfigProvider,
     ProLayout,
-    ProSettings,
-    SettingDrawer
+    ProSettings
 } from '@ant-design/pro-components';
-import { Button, ConfigProvider, Dropdown, Tooltip } from 'antd';
+import { Button, ConfigProvider, Dropdown, Select, Space, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 
@@ -26,7 +25,7 @@ const BasicLayout = () => {
 
     // Detect system theme
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
+
     const [themeMode, setThemeMode] = useState<string>(
         localStorage.getItem('themeMode') || (systemPrefersDark ? 'dark' : 'light')
     );
@@ -60,6 +59,29 @@ const BasicLayout = () => {
 
     // Use context from child pages for extra & footer
     const { pageExtra, pageFooter } = useOutletContext<{ pageExtra?: React.ReactNode; pageFooter?: React.ReactNode[] }>() || {};
+
+    // TODO: Replace with real server data
+    const servers = [
+        {
+            label: 'Production',
+            options: [
+                { label: 'Server 1', value: 'prod-1' },
+                { label: 'Server 2', value: 'prod-2' },
+            ],
+        },
+        {
+            label: 'Staging',
+            options: [
+                { label: 'Server A', value: 'stage-a' },
+                { label: 'Server B', value: 'stage-b' },
+            ],
+        },
+    ];
+
+    // TODO: Handle server change event
+    const handleServerChange = (value: string) => {
+        console.log('Selected server:', value);
+    };
 
     return (
         <div id="containerize-layout" style={{ height: "95dvh", display: "flex", flexDirection: "column" }}>
@@ -97,10 +119,20 @@ const BasicLayout = () => {
                             </Tooltip>,
                         ]}
                         headerTitleRender={(logo, title) => (
-                            <a>
-                                {logo}
-                                {title}
-                            </a>
+                            <Space size={'large'}>
+                                <a>
+                                    {logo}
+                                    {title}
+                                </a>
+                               
+                                <Select
+                                    style={{ width: 200 }}
+                                    placeholder="Select Server"
+                                    options={servers}
+                                    onChange={handleServerChange}
+                                    allowClear
+                                />
+                            </Space>
                         )}
                         menuFooterRender={(props) =>
                             !props?.collapsed ? <div style={{ textAlign: 'center', paddingBlockStart: 12 }}>© 2025 Containerize</div> : undefined
@@ -124,14 +156,14 @@ const BasicLayout = () => {
                             </ProCard>
                         </PageContainer>
 
-                        <SettingDrawer
+                        {/* <SettingDrawer
                             pathname={pathname}
                             enableDarkTheme
                             getContainer={() => document.getElementById('containerize-layout')}
                             settings={settings}
                             onSettingChange={(changeSetting) => setSetting(changeSetting)}
                             disableUrlParams={false}
-                        />
+                        /> */}
                     </ProLayout>
                 </ConfigProvider>
             </ProConfigProvider>
