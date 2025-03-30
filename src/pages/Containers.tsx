@@ -160,21 +160,23 @@ const Containers = () => {
       search: false,
       render: (_, record) => {
         if (!record.Ports || record.Ports.length === 0) return "N/A";
-        return record.Ports.map((port, index) => {
+        return <div className="flex space-x-3">
+          {record.Ports.map((port, index) => {
           const { IP, PublicPort, PrivatePort } = port;
           const url = `http://${IP}:${PublicPort}`;
           return (
             <div key={index}>
               {PublicPort ? (
-                <a href={url} target="_blank" rel="noopener noreferrer">
-                  <FaExternalLinkAlt /> {`${PublicPort}:${PrivatePort}`}
+                <a href={url}  className="flex items-center space-x-2" target="_blank" rel="noopener noreferrer">
+                  <FaExternalLinkAlt /> <span>{`${PublicPort}:${PrivatePort}`}</span> 
                 </a>
               ) : (
                 "-"
               )}
             </div>
           );
-        });
+        })}
+        </div> 
       },
     },
     {

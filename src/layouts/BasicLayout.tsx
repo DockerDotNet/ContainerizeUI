@@ -42,6 +42,7 @@ const BasicLayout = () => {
 
     useEffect(() => {
         localStorage.setItem('themeMode', themeMode);
+        document.body.classList.toggle('dark', themeMode === 'dark');
         setSetting((prev) => ({
             ...prev,
             navTheme: themeMode === "dark" ? "realDark" : "light"
