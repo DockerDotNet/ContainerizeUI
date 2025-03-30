@@ -18,6 +18,7 @@ import {
 import { Button, ConfigProvider, Dropdown, Select, Space, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import enUS from "antd/locale/en_US";
 
 const BasicLayout = () => {
     const { pathname } = useLocation();
@@ -85,8 +86,8 @@ const BasicLayout = () => {
 
     return (
         <div id="containerize-layout" style={{ height: "95dvh", display: "flex", flexDirection: "column" }}>
-            <ProConfigProvider hashed={false}>
-                <ConfigProvider getTargetContainer={() => document.getElementById('containerize-layout') || document.body}>
+            <ConfigProvider getTargetContainer={() => document.getElementById('containerize-layout') || document.body} locale={enUS}>
+                <ProConfigProvider hashed={false} >
                     <ProLayout
                         prefixCls="containerize"
                         title="Containerize"
@@ -124,7 +125,7 @@ const BasicLayout = () => {
                                     {logo}
                                     {title}
                                 </a>
-                               
+
                                 <Select
                                     style={{ width: 200 }}
                                     placeholder="Select Server"
@@ -165,8 +166,8 @@ const BasicLayout = () => {
                             disableUrlParams={false}
                         /> */}
                     </ProLayout>
-                </ConfigProvider>
-            </ProConfigProvider>
+                </ProConfigProvider>
+            </ConfigProvider>
         </div>
     );
 };
