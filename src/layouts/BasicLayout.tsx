@@ -20,6 +20,7 @@ import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router
 const BasicLayout = () => {
     const { pathname } = useLocation();
     const navigate = useNavigate();
+    const [pageExtra, setPageExtra] = useState<React.ReactNode | undefined>(undefined);
 
     // Detect system theme
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -56,7 +57,7 @@ const BasicLayout = () => {
     const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&size=64&background=random`;
 
     // Use context from child pages for extra & footer
-    const { pageExtra, pageFooter } = useOutletContext<{ pageExtra?: React.ReactNode; pageFooter?: React.ReactNode[] }>() || {};
+    const { pageFooter } = useOutletContext<{ pageFooter?: React.ReactNode[] }>() || {};
 
     // TODO: Replace with real server data
     const servers = [
@@ -148,7 +149,7 @@ const BasicLayout = () => {
                             style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%" }}
                         >
                             <ProCard style={{ flex: 1, height: "100%", overflow: "auto" }}>
-                                <Outlet context={{ setUser, user }} />
+                                <Outlet context={{ setUser, user, setPageExtra }} />
                             </ProCard>
                         </PageContainer>
 
