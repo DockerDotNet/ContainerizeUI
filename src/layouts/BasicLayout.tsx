@@ -1,11 +1,8 @@
 import defaultProps from '@/defaultProps';
 import {
     DockerOutlined,
-    GithubFilled,
-    InfoCircleFilled,
     LogoutOutlined,
     MoonOutlined,
-    QuestionCircleFilled,
     SunOutlined
 } from '@ant-design/icons';
 import {
@@ -16,9 +13,9 @@ import {
     ProSettings
 } from '@ant-design/pro-components';
 import { Button, ConfigProvider, Dropdown, Select, Space, Tooltip } from 'antd';
+import enUS from "antd/locale/en_US";
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import enUS from "antd/locale/en_US";
 
 const BasicLayout = () => {
     const { pathname } = useLocation();
@@ -96,6 +93,7 @@ const BasicLayout = () => {
                         {...defaultProps}
                         location={{ pathname }}
                         token={{ header: { colorBgMenuItemSelected: 'rgba(0,0,0,0.04)' } }}
+                        style={{ height: "95dvh" }}
                         siderMenuType="group"
                         menu={{ collapsedShowGroupTitle: true }}
                         avatarProps={{
@@ -109,9 +107,6 @@ const BasicLayout = () => {
                             ),
                         }}
                         actionsRender={(props) => props.isMobile ? [] : [
-                            <InfoCircleFilled key="info" />,
-                            <QuestionCircleFilled key="help" />,
-                            <GithubFilled key="github" />,
                             <Tooltip title="Toggle Theme">
                                 <Button
                                     icon={themeMode === "dark" ? <MoonOutlined /> : <SunOutlined />}
