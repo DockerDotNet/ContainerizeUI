@@ -1,17 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { refreshOptions } from "@/config/RefreshOptions";
+import AutoRefreshTable from "@/components/AutoRefreshTable";
 import { statusBadgeMap, StatusEnum } from "@/enums/ContainerState";
 import ContainersService from "@/services/containersService";
-import { useAutoRefresh } from "@/stores/useAutoRefresh";
-import {
-  ProColumns,
-  ProDescriptions,
-  ProDescriptionsItemProps,
-  ProTable,
-} from "@ant-design/pro-components";
-import { Badge, Button, Drawer, Dropdown, Input, Space, Tooltip } from "antd";
-import { MenuProps } from "antd/lib";
+import { ProColumns, ProDescriptions, ProDescriptionsItemProps } from "@ant-design/pro-components";
+import { Badge, Drawer, Input, Space, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { FaExternalLinkAlt } from "react-icons/fa";
 import { useOutletContext } from "react-router-dom";
@@ -32,20 +23,17 @@ interface Container {
 
 const Containers = () => {
   const [containers, setContainers] = useState<Container[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const [currentRow, setCurrentRow] = useState<Container | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const {setAutoRefreshInterval,isAutoRefresh,setAutoRefresh, autoRefreshInterval} = useAutoRefresh();
   const { setPageExtra } = useOutletContext<{ 
     setUser?: React.Dispatch<React.SetStateAction<{ name: string }>>;
     user?: { name: string };
     setPageExtra?: (extra: React.ReactNode) => void;
-}>() || {};
+  }>() || {};
 
   const fetchContainers = async () => {
-    setLoading(true);
     try {
       // Build query params for status filter
       const filters: Record<string, any> = { all: true };
@@ -57,69 +45,14 @@ const Containers = () => {
 
       const response = await ContainersService.listContainers(filters);
       setContainers(response.data);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Failed to fetch containers:", error);
     }
   };
 
   useEffect(() => {
     fetchContainers();
-  }, [statusFilters])
-  
-
-  useEffect(() => {
-    if (isAutoRefresh && autoRefreshInterval > 0) {
-      const fetchIfActive = () => {
-        if (document.visibilityState === "visible") {
-          console.log("Refreshing every:", autoRefreshInterval, "ms");
-          fetchContainers();
-        } else {
-          console.log("Tab Inactive - Skipping Refresh");
-        }
-      };
-  
-      // Initial fetch
-      fetchIfActive();
-  
-      const interval = setInterval(fetchIfActive, autoRefreshInterval);
-  
-      // Cleanup on unmount or dependency change
-      return () => clearInterval(interval);
-    }
-  }, [isAutoRefresh, autoRefreshInterval]);
-  
-
-  useEffect(() => {    
-    if (setPageExtra) {
-      const menuItems: MenuProps["items"] = refreshOptions.map((option) => ({
-        key: option.value.toString(),
-        label: option.label,
-        onClick: () => {
-          if(option.value === 0) {
-            setAutoRefreshInterval(0);
-            setAutoRefresh(false);
-            return;
-          }
-          setAutoRefresh(true);
-          setAutoRefreshInterval(option.value)
-        },
-      }));
-      setPageExtra(
-        <Space>
-        <Dropdown menu={{ items: menuItems }} trigger={["click"]} >
-          <Button type="default">Auto Refresh</Button>
-        </Dropdown>
-        </Space>
-        
-      );
-    }
-    
-    return () => {
-        if (setPageExtra) {
-            setPageExtra(undefined);
-        }
-    };
-}, [setPageExtra, setAutoRefreshInterval]);
+  }, [statusFilters]);
 
   const columns: ProColumns<Container>[] = [
     {
@@ -205,30 +138,27 @@ const Containers = () => {
     },
   ];
 
+  const filteredContainers = containers.filter(
+    (container) =>
+      container.Names.some((name) =>
+        name.toLowerCase().includes(searchTerm.toLowerCase())
+      ) ||
+      container.Image.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      container.Id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div style={{ padding: "20px" }}>
-      <ProTable<Container>
+      <AutoRefreshTable<Container, Record<string, any>>
         defaultSize="small"
         pagination={{
           showSizeChanger: true,
           pageSize: 10,
-      }}
-        columns={columns}
-        dataSource={containers.filter(
-          (container) =>
-            container.Names.some((name) =>
-              name.toLowerCase().includes(searchTerm.toLowerCase())
-            ) ||
-            container.Image.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            container.Id.toLowerCase().includes(searchTerm.toLowerCase())
-        )}
-        loading={loading}
-        options={{
-          reload: () => fetchContainers(),
-          setting: {
-            draggable: true,
-          },
         }}
+        columns={columns}
+        dataSource={filteredContainers}
+        fetchData={fetchContainers}
+        setPageExtra={setPageExtra}
         rowKey="Id"
         search={false}
         dateFormatter="string"
