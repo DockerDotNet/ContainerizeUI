@@ -1,3 +1,7 @@
+.ant-pro-grid-content , .ant-pro-grid-content-children, .ant-pro-page-container-children-container {
+    height: 100%;
+}
+
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));

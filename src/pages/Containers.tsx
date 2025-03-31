@@ -1,8 +1,9 @@
 import AutoRefreshTable from "@/components/AutoRefreshTable";
 import { statusBadgeMap, StatusEnum } from "@/enums/ContainerState";
 import ContainersService from "@/services/containersService";
+import { DeleteOutlined, PauseCircleOutlined, PlayCircleOutlined, RedoOutlined, StopOutlined, SyncOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { ProColumns, ProDescriptions, ProDescriptionsItemProps } from "@ant-design/pro-components";
-import { Badge, Drawer, Input, Space, Tooltip } from "antd";
+import { Badge, Button, Drawer, Input, message, notification, Space, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { FaExternalLinkAlt } from "react-icons/fa";
 import { useOutletContext } from "react-router-dom";
@@ -21,28 +22,35 @@ interface Container {
   }[];
 }
 
+const actionButtons = [
+  { key: "startContainer", label: "Start", icon: <PlayCircleOutlined /> },
+  { key: "stopContainer", label: "Stop", icon: <StopOutlined /> },
+  { key: "kill", label: "Force Kill", icon: <ThunderboltOutlined /> },
+  { key: "restart", label: "Restart", icon: <RedoOutlined /> },
+  { key: "pause", label: "Pause", icon: <PauseCircleOutlined /> },
+  { key: "resume", label: "Resume", icon: <SyncOutlined /> },
+  { key: "removeContainer", label: "Remove", icon: <DeleteOutlined /> },
+];
+
 const Containers = () => {
   const [containers, setContainers] = useState<Container[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const [currentRow, setCurrentRow] = useState<Container | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const { setPageExtra } = useOutletContext<{ 
-    setUser?: React.Dispatch<React.SetStateAction<{ name: string }>>;
-    user?: { name: string };
+  const { setPageExtra } = useOutletContext<{
     setPageExtra?: (extra: React.ReactNode) => void;
   }>() || {};
 
   const fetchContainers = async () => {
     try {
-      // Build query params for status filter
       const filters: Record<string, any> = { all: true };
       if (statusFilters.length > 0) {
         filters["filters[status]"] = Object.fromEntries(
           statusFilters.map((status) => [status, true])
         );
       }
-
       const response = await ContainersService.listContainers(filters);
       setContainers(response.data);
     } catch (error) {
@@ -53,6 +61,28 @@ const Containers = () => {
   useEffect(() => {
     fetchContainers();
   }, [statusFilters]);
+
+  const handleAction = async (action: string,lable: string, containerIds: string[]) => {
+    try {
+      for (const id of containerIds) {
+        await ContainersService[action](id);
+      }
+      notification.success({
+        message: `${action.charAt(0).toUpperCase() + action.slice(1)} Successful`,
+        description: `Containers have been ${lable}ed successfully.`,
+        placement: "topRight",
+      });
+      setTimeout(() => {
+        fetchContainers();
+      },300);
+    } catch (error) {
+      notification.error({
+        message: `Failed to ${action}`,
+        description: `An error occurred while trying to ${action} containers.`,
+        placement: "topRight",
+      });
+    }
+  };
 
   const columns: ProColumns<Container>[] = [
     {
@@ -151,10 +181,7 @@ const Containers = () => {
     <div style={{ padding: "20px" }}>
       <AutoRefreshTable<Container, Record<string, any>>
         defaultSize="small"
-        pagination={{
-          showSizeChanger: true,
-          pageSize: 10,
-        }}
+        pagination={{ showSizeChanger: true, defaultPageSize: 10 }}
         columns={columns}
         dataSource={filteredContainers}
         fetchData={fetchContainers}
@@ -162,6 +189,35 @@ const Containers = () => {
         rowKey="Id"
         search={false}
         dateFormatter="string"
+        options={{
+          fullScreen: true,
+        }}
+        
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys as string[]),
+          preserveSelectedRowKeys: true,
+          alwaysShowAlert: true,
+
+        }}
+        
+        tableAlertOptionRender={({ selectedRowKeys, onCleanSelected }) => (
+          <Space>
+            {actionButtons.map(({ key, label, icon }) => (
+                <Button
+                  key={key}
+                  icon={icon}
+                  onClick={() => handleAction(key,label, selectedRowKeys as string[])}
+                  disabled={selectedRowKeys.length === 0}
+                >
+                  {label}
+                </Button>
+              ))}
+            <Button onClick={onCleanSelected} disabled={selectedRowKeys.length === 0} type="link">
+              Clear
+            </Button>
+          </Space>
+        )}
         toolBarRender={() => [
           <Input
             key="search"
@@ -169,7 +225,7 @@ const Containers = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: 210 }}
-          />,
+          />
         ]}
         onChange={(_, filters) => {
           const selectedStatuses = filters.State as string[];
@@ -190,7 +246,6 @@ const Containers = () => {
         }}
       />
 
-      {/* Drawer for Container Details */}
       <Drawer
         width={600}
         open={showDetail}

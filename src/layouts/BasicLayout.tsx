@@ -149,7 +149,7 @@ const BasicLayout = () => {
                             footer={pageFooter ?? []} // Ensure it's always an array
                             style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%" }}
                         >
-                            <ProCard style={{ flex: 1, height: "100%", overflow: "auto" }}>
+                            <ProCard style={{ flex: 1, height: "100%"}}>
                                 <Outlet context={{ setUser, user, setPageExtra }} />
                             </ProCard>
                         </PageContainer>
