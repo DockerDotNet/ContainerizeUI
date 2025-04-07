@@ -10,7 +10,8 @@ import {
     ProCard,
     ProConfigProvider,
     ProLayout,
-    ProSettings
+    ProSettings,
+    SettingDrawer
 } from '@ant-design/pro-components';
 import { Button, ConfigProvider, Dropdown, Select, Space, Tooltip } from 'antd';
 import enUS from "antd/locale/en_US";
@@ -149,19 +150,19 @@ const BasicLayout = () => {
                             footer={pageFooter ?? []} // Ensure it's always an array
                             style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%" }}
                         >
-                            <ProCard style={{ flex: 1, height: "100%"}}>
-                                <Outlet context={{ setUser, user, setPageExtra }} />
-                            </ProCard>
+                            {/* <ProCard style={{ flex: 1, height: "100%" }}> */}
+                            <Outlet context={{ setUser, user, setPageExtra }} />
+                            {/* </ProCard> */}
                         </PageContainer>
 
-                        {/* <SettingDrawer
+                        <SettingDrawer
                             pathname={pathname}
                             enableDarkTheme
                             getContainer={() => document.getElementById('containerize-layout')}
                             settings={settings}
                             onSettingChange={(changeSetting) => setSetting(changeSetting)}
                             disableUrlParams={false}
-                        /> */}
+                        />
                     </ProLayout>
                 </ProConfigProvider>
             </ConfigProvider>

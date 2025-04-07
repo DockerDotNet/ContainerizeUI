@@ -1,12 +1,35 @@
 import AutoRefreshTable from "@/components/AutoRefreshTable";
 import { statusBadgeMap, StatusEnum } from "@/enums/ContainerState";
 import ContainersService from "@/services/containersService";
-import { DeleteOutlined, PauseCircleOutlined, PlayCircleOutlined, RedoOutlined, StopOutlined, SyncOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { ProColumns, ProDescriptions, ProDescriptionsItemProps } from "@ant-design/pro-components";
-import { Badge, Button, Drawer, Input, message, notification, Space, Tooltip } from "antd";
-import { useEffect, useState } from "react";
+import {
+  DeleteOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  RedoOutlined,
+  StopOutlined,
+  SyncOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
+import {
+  ProColumns,
+  ProDescriptions,
+  ProDescriptionsItemProps,
+} from "@ant-design/pro-components";
+import { Badge, Button, Drawer, Input, notification, Space, Tooltip } from "antd";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaExternalLinkAlt } from "react-icons/fa";
 import { useOutletContext } from "react-router-dom";
+
+// Custom hook to get window width for responsive design
+const useWindowWidth = () => {
+  const [width, setWidth] = useState<number>(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return width;
+};
 
 interface Container {
   Id: string;
@@ -22,7 +45,7 @@ interface Container {
   }[];
 }
 
-const actionButtons = [
+const ACTION_BUTTONS = [
   { key: "startContainer", label: "Start", icon: <PlayCircleOutlined /> },
   { key: "stopContainer", label: "Stop", icon: <StopOutlined /> },
   { key: "kill", label: "Force Kill", icon: <ThunderboltOutlined /> },
@@ -39,11 +62,14 @@ const Containers = () => {
   const [currentRow, setCurrentRow] = useState<Container | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const { setPageExtra } = useOutletContext<{
-    setPageExtra?: (extra: React.ReactNode) => void;
-  }>() || {};
+  const windowWidth = useWindowWidth();
+  const isMobile = windowWidth < 768;
 
-  const fetchContainers = async () => {
+  // Using Outlet context for extra page content if provided
+  const { setPageExtra } = useOutletContext<{ setPageExtra?: (extra: React.ReactNode) => void }>() || {};
+
+  // Fetch containers with applied filters
+  const fetchContainers = useCallback(async () => {
     try {
       const filters: Record<string, any> = { all: true };
       if (statusFilters.length > 0) {
@@ -55,49 +81,64 @@ const Containers = () => {
       setContainers(response.data);
     } catch (error) {
       console.error("Failed to fetch containers:", error);
+      notification.error({
+        message: "Fetch Error",
+        description: "Failed to fetch containers. Please try again later.",
+        placement: "topRight",
+      });
     }
-  };
+  }, [statusFilters]);
 
   useEffect(() => {
     fetchContainers();
-  }, [statusFilters]);
+  }, [statusFilters, fetchContainers]);
 
-  const handleAction = async (action: string,lable: string, containerIds: string[]) => {
-    try {
-      for (const id of containerIds) {
-        await ContainersService[action](id);
+  // Handle container actions (start, stop, etc.)
+  const handleAction = useCallback(
+    async (action: string, label: string, containerIds: string[]) => {
+      try {
+        for (const id of containerIds) {
+          // Dynamically call the action from the service
+          await ContainersService[action](id);
+        }
+        notification.success({
+          message: `${action.charAt(0).toUpperCase() + action.slice(1)} Successful`,
+          description: `Containers have been ${label.toLowerCase()}ed successfully.`,
+          placement: "topRight",
+        });
+        // Refresh container list after action
+        setTimeout(fetchContainers, 300);
+      } catch (error) {
+        console.error(`Error executing ${action}:`, error);
+        notification.error({
+          message: `Failed to ${action}`,
+          description: `An error occurred while trying to ${action} containers.`,
+          placement: "topRight",
+        });
       }
-      notification.success({
-        message: `${action.charAt(0).toUpperCase() + action.slice(1)} Successful`,
-        description: `Containers have been ${lable}ed successfully.`,
-        placement: "topRight",
-      });
-      setTimeout(() => {
-        fetchContainers();
-      },300);
-    } catch (error) {
-      notification.error({
-        message: `Failed to ${action}`,
-        description: `An error occurred while trying to ${action} containers.`,
-        placement: "topRight",
-      });
-    }
-  };
+    },
+    [fetchContainers]
+  );
 
+  // Define columns for the table
   const columns: ProColumns<Container>[] = [
+    // Hide the ID column on mobile devices using the responsive property
     {
       title: "Container ID",
       dataIndex: "Id",
       key: "Id",
       copyable: true,
       ellipsis: true,
-      width: 120,
+      width: 53,
       sorter: (a, b) => a.Id.localeCompare(b.Id),
+      responsive: ["md"],
     },
     {
       title: "Name",
       dataIndex: "Names",
       key: "Names",
+      width: 150,
+      //ellipsis: true,
       sorter: (a, b) => a.Names[0].localeCompare(b.Names[0]),
       render: (_, record) => (
         <a
@@ -114,6 +155,7 @@ const Containers = () => {
       title: "Image",
       dataIndex: "Image",
       key: "Image",
+      width: 110,
       sorter: (a, b) => a.Image.localeCompare(b.Image),
     },
     {
@@ -121,31 +163,40 @@ const Containers = () => {
       dataIndex: "Ports",
       key: "Ports",
       search: false,
+      width: 80,
       render: (_, record) => {
         if (!record.Ports || record.Ports.length === 0) return "N/A";
-        return <div className="flex space-x-3">
-          {record.Ports.map((port, index) => {
-          const { IP, PublicPort, PrivatePort } = port;
-          const url = `http://${IP}:${PublicPort}`;
-          return (
-            <div key={index}>
-              {PublicPort ? (
-                <a href={url}  className="flex items-center space-x-2" target="_blank" rel="noopener noreferrer">
-                  <FaExternalLinkAlt /> <span>{`${PublicPort}:${PrivatePort}`}</span> 
-                </a>
-              ) : (
-                "-"
-              )}
-            </div>
-          );
-        })}
-        </div> 
+        return (
+          <Space wrap>
+            {record.Ports.map((port, index) => {
+              const { IP, PublicPort, PrivatePort } = port;
+              const url = `http://${IP}:${PublicPort}`;
+              return (
+                <div key={index}>
+                  {PublicPort ? (
+                    <a
+                      href={url}
+                      className="flex items-center space-x-2"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <FaExternalLinkAlt /> <span>{`${PublicPort}:${PrivatePort}`}</span>
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </div>
+              );
+            })}
+          </Space>
+        );
       },
     },
     {
       title: "Status",
       dataIndex: "State",
       key: "State",
+      width: 150,
       sorter: (a, b) => a.State - b.State,
       render: (_, record) => (
         <Space>
@@ -168,14 +219,33 @@ const Containers = () => {
     },
   ];
 
-  const filteredContainers = containers.filter(
-    (container) =>
+  // Memoize the filtered list of containers for performance
+  const filteredContainers = useMemo(() => {
+    return containers.filter((container) =>
       container.Names.some((name) =>
         name.toLowerCase().includes(searchTerm.toLowerCase())
       ) ||
       container.Image.toLowerCase().includes(searchTerm.toLowerCase()) ||
       container.Id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    );
+  }, [containers, searchTerm]);
+
+  // Handle filter changes coming from the table
+  const handleTableChange = (_: any, filters: any) => {
+    const selectedStatuses = filters.State as string[];
+    if (selectedStatuses) {
+      const mappedStatuses = selectedStatuses
+        .map((num) =>
+          Object.keys(StatusEnum)
+            .filter((key) => isNaN(Number(key)))
+            .find((key) => StatusEnum[key as keyof typeof StatusEnum] === Number(num))
+        )
+        .filter(Boolean) as string[];
+      setStatusFilters(mappedStatuses.map((s) => s.toLowerCase()));
+    } else {
+      setStatusFilters([]);
+    }
+  };
 
   return (
     <div style={{ padding: "20px" }}>
@@ -189,34 +259,32 @@ const Containers = () => {
         rowKey="Id"
         search={false}
         dateFormatter="string"
-        options={{
-          fullScreen: true,
-        }}
-        
+        options={{ fullScreen: true }}
+        scroll={{ x: isMobile ? 600 : 800 }}
         rowSelection={{
           selectedRowKeys,
           onChange: (keys) => setSelectedRowKeys(keys as string[]),
           preserveSelectedRowKeys: true,
           alwaysShowAlert: true,
-
         }}
-        
         tableAlertOptionRender={({ selectedRowKeys, onCleanSelected }) => (
-          <Space>
-            {actionButtons.map(({ key, label, icon }) => (
+          <div>
+            <Space wrap>
+              {ACTION_BUTTONS.map(({ key, label, icon }) => (
                 <Button
                   key={key}
                   icon={icon}
-                  onClick={() => handleAction(key,label, selectedRowKeys as string[])}
+                  onClick={() => handleAction(key, label, selectedRowKeys as string[])}
                   disabled={selectedRowKeys.length === 0}
                 >
                   {label}
                 </Button>
               ))}
+            </Space>
             <Button onClick={onCleanSelected} disabled={selectedRowKeys.length === 0} type="link">
               Clear
             </Button>
-          </Space>
+          </div>
         )}
         toolBarRender={() => [
           <Input
@@ -224,30 +292,14 @@ const Containers = () => {
             placeholder="Search By ID, Name or Image"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: 210 }}
-          />
+            style={{ width: isMobile ? "100%" : 210 }}
+          />,
         ]}
-        onChange={(_, filters) => {
-          const selectedStatuses = filters.State as string[];
-          
-          if (selectedStatuses) {
-            const mappedStatuses = selectedStatuses
-              .map((num) => {
-                return Object.keys(StatusEnum)
-                  .filter((key) => isNaN(Number(key)))
-                  .find((key) => StatusEnum[key as keyof typeof StatusEnum] === Number(num));
-              })
-              .filter(Boolean) as string[];
-
-            setStatusFilters(mappedStatuses.map((s) => s.toLowerCase()));
-          } else {
-            setStatusFilters([]);
-          }
-        }}
+        onChange={(_, filters) => handleTableChange(_, filters)}
       />
 
       <Drawer
-        width={600}
+        width={isMobile ? "100%" : 600}
         open={showDetail}
         onClose={() => {
           setCurrentRow(null);
@@ -259,12 +311,8 @@ const Containers = () => {
           <ProDescriptions<Container>
             column={2}
             title={currentRow?.Names[0].substring(1)}
-            request={async () => ({
-              data: currentRow || {},
-            })}
-            params={{
-              id: currentRow?.Id,
-            }}
+            request={async () => ({ data: currentRow || {} })}
+            params={{ id: currentRow?.Id }}
             columns={columns as ProDescriptionsItemProps<Container>[]}
           />
         )}
