@@ -1,26 +1,20 @@
+import AutoRefreshIcon from "@/assets/autorefresh.svg?react";
+import AutoRefreshOffIcon from "@/assets/refreshoff.svg?react";
 import {
-  ClockCircleOutlined,
-  SyncOutlined,
+  SyncOutlined
 } from "@ant-design/icons";
 import { ProTable, ProTableProps } from "@ant-design/pro-components";
 import { Dropdown, MenuProps, Space, Tooltip } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { FaA } from "react-icons/fa6";
 
 interface AutoRefreshTableProps<T, U> extends ProTableProps<T, U> {
   fetchData?: () => void;
 }
 
-function ClockWithA() {
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
-      <ClockCircleOutlined style={{ fontSize: 16 }} />
-      <FaA style={{ fontSize: 10 }} />
-    </div>
-  );
-}
-
-const AutoRefreshTable = <T extends Record<string, any>, U extends Record<string, any>>({
+const AutoRefreshTable = <
+  T extends Record<string, any>,
+  U extends Record<string, any>
+>({
   fetchData,
   toolBarRender,
   ...rest
@@ -87,37 +81,29 @@ const AutoRefreshTable = <T extends Record<string, any>, U extends Record<string
 
   const refreshIcons = (
     <Space>
-      {/* Set interval */}
+      {/* Auto-refresh toggle with interval dropdown */}
       <Dropdown
         menu={{ items: menuItems, onClick: handleIntervalChange }}
         trigger={["click"]}
       >
-        <Tooltip title="Set auto-refresh interval">
+        <Tooltip
+          title={
+            isAutoRefresh
+              ? `Interval: ${autoRefreshInterval / 1000}s (Click to change)`
+              : "Auto-refresh disabled (Click to enable)"
+          }
+        >
           <span style={{ cursor: "pointer" }}>
-            <ClockCircleOutlined style={{ fontSize: 16 }} />
+            {isAutoRefresh ? (
+              <AutoRefreshIcon style={{ width: 18, height: 18 }} />
+            ) : (
+              <AutoRefreshOffIcon style={{ width: 18, height: 18 }} />
+            )}
           </span>
         </Tooltip>
       </Dropdown>
 
-      {/* Auto-refresh toggle */}
-      <Tooltip title={isAutoRefresh ? "Disable Auto Refresh" : "Enable Auto Refresh"}>
-        <span
-          onClick={() => {
-            if (isAutoRefresh) {
-              setAutoRefresh(false);
-              setAutoRefreshInterval(0);
-            } else {
-              setAutoRefresh(true);
-              setAutoRefreshInterval(5000);
-            }
-          }}
-          style={{ cursor: "pointer" }}
-        >
-          <ClockWithA />
-        </span>
-      </Tooltip>
-
-      {/* Manual refresh */}
+      {/* Manual refresh button */}
       <Tooltip title="Refresh now">
         <span onClick={handleFetchData} style={{ cursor: "pointer" }}>
           <SyncOutlined style={{ fontSize: 16 }} />
@@ -127,8 +113,8 @@ const AutoRefreshTable = <T extends Record<string, any>, U extends Record<string
   );
 
   const mergedToolBarRender = () => {
-    // Check if toolBarRender is a function before calling it
-    const userContent = typeof toolBarRender === 'function' ? toolBarRender(undefined, {}) : [];
+    const userContent =
+      typeof toolBarRender === "function" ? toolBarRender(undefined, {}) : [];
     return [...userContent, refreshIcons];
   };
 
@@ -137,7 +123,7 @@ const AutoRefreshTable = <T extends Record<string, any>, U extends Record<string
       {...rest}
       loading={loading}
       toolBarRender={mergedToolBarRender}
-      options={{ ...rest.options, reload: false }} // disable built-in reload icon
+      options={{ ...rest.options, reload: false }}
     />
   );
 };
