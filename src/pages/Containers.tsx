@@ -15,7 +15,7 @@ import {
   ProDescriptions,
   ProDescriptionsItemProps,
 } from "@ant-design/pro-components";
-import { Badge, Button, Drawer, Input, notification, Space, Tooltip } from "antd";
+import { Badge, Button, Drawer, Dropdown, Input, notification, Space, Tooltip } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaExternalLinkAlt } from "react-icons/fa";
 import { useOutletContext } from "react-router-dom";
@@ -267,25 +267,58 @@ const Containers = () => {
           preserveSelectedRowKeys: true,
           alwaysShowAlert: true,
         }}
-        tableAlertOptionRender={({ selectedRowKeys, onCleanSelected }) => (
-          <div>
-            <Space wrap>
-              {ACTION_BUTTONS.map(({ key, label, icon }) => (
+        tableAlertOptionRender={({ selectedRowKeys, onCleanSelected }) => {
+          const hasSelection = selectedRowKeys.length > 0;
+
+          const mobileActionMenu = (
+            <Dropdown
+              menu={{
+                items: ACTION_BUTTONS.map(({ key, label, icon }) => ({
+                  key,
+                  label: (
+                    <span onClick={() => handleAction(key, label, selectedRowKeys as string[])} className="flex items-center gap-2">
+                      {icon} {label}
+                    </span>
+                  ),
+                })),
+              }}
+              trigger={["click"]}
+              disabled={!hasSelection}
+            >
+              <Button disabled={!hasSelection}>Actions</Button>
+            </Dropdown>
+          );
+
+          return (
+            <div style={{ display: "flex", gap: 8 }}>
+              <Space wrap style={{ gap: 3 }}>
+                {isMobile
+                  ? mobileActionMenu
+                  : ACTION_BUTTONS.map(({ key, label, icon }) => (
+                    <Button
+                      key={key}
+                      icon={icon}
+                      onClick={() => handleAction(key, label, selectedRowKeys as string[])}
+                      disabled={!hasSelection}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+              </Space>
+              <div>
                 <Button
-                  key={key}
-                  icon={icon}
-                  onClick={() => handleAction(key, label, selectedRowKeys as string[])}
-                  disabled={selectedRowKeys.length === 0}
+                  onClick={onCleanSelected}
+                  disabled={!hasSelection}
+                  type="link"
+                  style={{ paddingLeft: isMobile ? 0 : undefined }}
                 >
-                  {label}
+                  Clear
                 </Button>
-              ))}
-            </Space>
-            <Button onClick={onCleanSelected} disabled={selectedRowKeys.length === 0} type="link">
-              Clear
-            </Button>
-          </div>
-        )}
+              </div>
+            </div>
+          );
+        }}
+
         toolBarRender={() => [
           <Input
             key="search"
