@@ -1,10 +1,7 @@
 import AutoRefreshIcon from "@/assets/autorefresh.svg?react";
 import AutoRefreshOffIcon from "@/assets/refreshoff.svg?react";
-import {
-  SyncOutlined
-} from "@ant-design/icons";
 import { ProTable, ProTableProps } from "@ant-design/pro-components";
-import { Dropdown, MenuProps, Space, Tooltip } from "antd";
+import { Dropdown, MenuProps, Tooltip } from "antd";
 import { useEffect, useRef, useState } from "react";
 
 interface AutoRefreshTableProps<T, U> extends ProTableProps<T, U> {
@@ -16,7 +13,6 @@ const AutoRefreshTable = <
   U extends Record<string, any>
 >({
   fetchData,
-  toolBarRender,
   ...rest
 }: AutoRefreshTableProps<T, U>) => {
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
@@ -38,7 +34,7 @@ const AutoRefreshTable = <
     stopAutoRefresh();
     if (interval > 0) {
       intervalRef.current = setInterval(() => {
-        fetchData?.();
+        handleFetchData();
       }, interval);
     }
   };
@@ -51,6 +47,7 @@ const AutoRefreshTable = <
   };
 
   useEffect(() => {
+    handleFetchData();
     if (isAutoRefresh && autoRefreshInterval > 0) {
       startAutoRefresh(autoRefreshInterval);
     } else {
@@ -79,51 +76,34 @@ const AutoRefreshTable = <
     }
   };
 
-  const refreshIcons = (
-    <Space>
-      {/* Auto-refresh toggle with interval dropdown */}
+  const refreshControls = [
+    <Tooltip key="auto-refresh" title={isAutoRefresh ? `Interval: ${autoRefreshInterval / 1000}s (Click to change)` : "Auto-refresh disabled (Click to enable)"}>
       <Dropdown
         menu={{ items: menuItems, onClick: handleIntervalChange }}
         trigger={["click"]}
       >
-        <Tooltip
-          title={
-            isAutoRefresh
-              ? `Interval: ${autoRefreshInterval / 1000}s (Click to change)`
-              : "Auto-refresh disabled (Click to enable)"
-          }
-        >
-          <span style={{ cursor: "pointer" }}>
-            {isAutoRefresh ? (
-              <AutoRefreshIcon style={{ width: 18, height: 18 }} />
-            ) : (
-              <AutoRefreshOffIcon style={{ width: 18, height: 18 }} />
-            )}
-          </span>
-        </Tooltip>
-      </Dropdown>
-
-      {/* Manual refresh button */}
-      <Tooltip title="Refresh now">
-        <span onClick={handleFetchData} style={{ cursor: "pointer" }}>
-          <SyncOutlined style={{ fontSize: 16 }} />
+        <span className="flex cursor-pointer">
+          {isAutoRefresh ? (
+            <AutoRefreshIcon style={{ width: 18, height: 18 }} />
+          ) : (
+            <AutoRefreshOffIcon style={{ width: 18, height: 18 }} />
+          )}
         </span>
-      </Tooltip>
-    </Space>
-  );
-
-  const mergedToolBarRender = () => {
-    const userContent =
-      typeof toolBarRender === "function" ? toolBarRender(undefined, {}) : [];
-    return [...userContent, refreshIcons];
-  };
+      </Dropdown>
+    </Tooltip>
+  ];
 
   return (
     <ProTable<T, U>
       {...rest}
       loading={loading}
-      toolBarRender={mergedToolBarRender}
-      options={{ ...rest.options, reload: false }}
+      options={{
+        ...(rest.options !== false ? rest.options : {}),
+        //reload: false, // handled by custom button
+        // density: true,
+        // search: false,
+      }}
+      optionsRender={(props, defaultDom) => [...refreshControls, ...defaultDom]}
     />
   );
 };
