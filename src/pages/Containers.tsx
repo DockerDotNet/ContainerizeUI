@@ -66,7 +66,7 @@ const Containers = () => {
   const isMobile = windowWidth < 768;
 
   // Using Outlet context for extra page content if provided
-  const { setPageExtra } = useOutletContext<{ setPageExtra?: (extra: React.ReactNode) => void }>() || {};
+  // const { setPageExtra } = useOutletContext<{ setPageExtra?: (extra: React.ReactNode) => void }>() || {};
 
   // Fetch containers with applied filters
   const fetchContainers = useCallback(async () => {
@@ -255,7 +255,6 @@ const Containers = () => {
         columns={columns}
         dataSource={filteredContainers}
         fetchData={fetchContainers}
-        setPageExtra={setPageExtra}
         rowKey="Id"
         search={false}
         dateFormatter="string"
